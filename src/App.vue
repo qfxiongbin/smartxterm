@@ -58,7 +58,7 @@ export default {
 <style>
 .terminal {
   width: 100%;
-  height: 100hv;
+  height: 100vh;
   border: 1px solid #ccc;
 }
 </style>
