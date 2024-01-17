@@ -1,9 +1,12 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, ipcMain } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
+
+const { exec } = require('child_process');
+const os = require('os');
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -19,10 +22,26 @@ async function createWindow() {
       
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
-      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
-      contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
+      nodeIntegration: true,
+      contextIsolation: false,
+
     }
   })
+
+  ipcMain.on('execute-command', (event, command) => {
+    if (command.trim() === '') {
+      console.error('收到的命令为空');
+      return;
+    }
+    exec(command,{ cwd: os.homedir() }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`执行的错误: ${error}`);
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+      event.reply('command-output', stdout || stderr);
+    });
+  });
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
