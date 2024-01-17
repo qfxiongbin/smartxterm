@@ -50,7 +50,10 @@ export default {
             commandHistoryIndex = Math.max(0, Math.min(commandHistoryIndex, commandHistory.length - 1));
             command = commandHistory[commandHistoryIndex];
             terminal.value.clear();
-            terminal.value.write(prompt + command);
+            if (command) {
+              terminal.value.write('\x1B[2K\r');
+              terminal.value.write(prompt + command);
+            }
           }
         } else {
           terminal.value.write(key);
