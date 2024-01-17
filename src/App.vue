@@ -15,6 +15,8 @@ export default {
     const terminal = ref(null);
     const prompt = '$ ';
     let command = '';
+    let commandHistory = []; // 命令历史
+    let commandHistoryIndex = -1; // 当前浏览的命令历史索引
 
     onMounted(() => {
       terminal.value = new Terminal();
@@ -23,15 +25,32 @@ export default {
       terminal.value.write(prompt);
 
       terminal.value.onKey(({ key, domEvent }) => {
-        if (domEvent.keyCode === 13) { // Enter key
+        const keyCode = domEvent.keyCode;
+        const isEnter = keyCode === 13;
+        const isBackspace = keyCode === 8;
+        const isArrowUp = keyCode === 38;
+        const isArrowDown = keyCode === 40;
+
+        if (isEnter) {
           terminal.value.writeln('');
-          ipcRenderer.send('execute-command', command);
+          executeCommand(command);
+          commandHistory.push(command); // 添加命令到历史
+          commandHistoryIndex = commandHistory.length; // 重置命令历史索引
           command = '';
           terminal.value.write(prompt);
-        } else if (domEvent.keyCode === 8) { // Backspace key
+        } else if (isBackspace) {
           if (command.length > 0) {
             terminal.value.write('\b \b');
             command = command.slice(0, -1);
+          }
+        } else if (isArrowUp || isArrowDown) {
+          if (commandHistory.length > 0) {
+            commandHistoryIndex += isArrowUp ? -1 : 1;
+            // 防止索引越界
+            commandHistoryIndex = Math.max(0, Math.min(commandHistoryIndex, commandHistory.length - 1));
+            command = commandHistory[commandHistoryIndex];
+            terminal.value.clear();
+            terminal.value.write(prompt + command);
           }
         } else {
           terminal.value.write(key);
@@ -39,7 +58,6 @@ export default {
         }
       });
 
-      // 监听来自主进程的命令输出
       ipcRenderer.on('command-output', (event, output) => {
         output.split('\n').forEach(line => {
           terminal.value.writeln(line);
@@ -47,6 +65,11 @@ export default {
         terminal.value.write(prompt);
       });
     });
+
+    const executeCommand = (command) => {
+      // 安全检查或命令过滤逻辑
+      ipcRenderer.send('execute-command', command);
+    };
 
     return {
       terminal

@@ -7,7 +7,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 
 const { exec } = require('child_process');
 const os = require('os');
-
+const path = require('path');
+let currentWorkingDirectory = os.homedir(); // 初始工作目录设置为用户的家目录
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
@@ -33,15 +34,37 @@ async function createWindow() {
       console.error('收到的命令为空');
       return;
     }
-    exec(command,{ cwd: os.homedir() }, (error, stdout, stderr) => {
+  
+    // 处理特殊命令，如 'cd'
+    if (command.startsWith('cd ')) {
+      const newDir = command.substring(3).trim();
+      try {
+        // 尝试改变当前工作目录
+        process.chdir(path.resolve(currentWorkingDirectory, newDir));
+        currentWorkingDirectory = process.cwd();
+        event.reply('command-output', `当前目录: ${currentWorkingDirectory}`);
+      } catch (error) {
+        console.error(`改变目录错误: ${error}`);
+        event.reply('command-output', `错误: ${error.message}`);
+      }
+      return;
+    }
+  
+    // 执行普通命令
+    exec(command, { cwd: currentWorkingDirectory }, (error, stdout, stderr) => {
       if (error) {
         console.error(`执行的错误: ${error}`);
+        event.reply('command-output', `错误: ${error.message}`);
         return;
       }
       console.log(`stdout: ${stdout}`);
       event.reply('command-output', stdout || stderr);
     });
   });
+
+  
+
+
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
