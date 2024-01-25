@@ -12,10 +12,10 @@ const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
 ])
-
+let win;
 async function createWindow() {
   // Create the browser window.
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -43,7 +43,7 @@ async function createWindow() {
 ipcMain.handle("terminal-create", (event) => {
   let term = pty.spawn(shell, [], {
       name: "xterm-color",
-      cwd: process.env.PWD,
+      cwd: os.homedir(),
       env: process.env
   });
   const pid = term.pid;
