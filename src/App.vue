@@ -30,6 +30,7 @@ export default {
         const isBackspace = keyCode === 8;
         const isArrowUp = keyCode === 38;
         const isArrowDown = keyCode === 40;
+        const tabKeyCode = keyCode === 9;
 
         if (isEnter) {
           terminal.value.writeln('');
@@ -55,13 +56,25 @@ export default {
               terminal.value.write(prompt + command);
             }
           }
-        } else {
+        } else if (tabKeyCode) {
+          // tab 补全逻辑
+          domEvent.preventDefault(); // 阻止 Tab 的默认行为
+          ipcRenderer.send('autocomplete-command', command);
+        } 
+        else {
           terminal.value.write(key);
           command += key;
         }
       });
 
       ipcRenderer.on('command-output', (event, output) => {
+        output.split('\n').forEach(line => {
+          terminal.value.writeln(line);
+        });
+        terminal.value.write(prompt);
+      });
+
+      ipcRenderer.on('autocomplete-result', (event, output) => {
         output.split('\n').forEach(line => {
           terminal.value.writeln(line);
         });

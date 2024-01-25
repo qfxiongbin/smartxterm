@@ -5,10 +5,9 @@ import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
-const { exec } = require('child_process');
 const os = require('os');
-const path = require('path');
-let currentWorkingDirectory = os.homedir(); // 初始工作目录设置为用户的家目录
+const pty = require('node-pty');
+const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
@@ -29,39 +28,6 @@ async function createWindow() {
     }
   })
 
-  ipcMain.on('execute-command', (event, command) => {
-    if (command.trim() === '') {
-      console.error('收到的命令为空');
-      return;
-    }
-  
-    // 处理特殊命令，如 'cd'
-    if (command.startsWith('cd ')) {
-      const newDir = command.substring(3).trim();
-      try {
-        // 尝试改变当前工作目录
-        process.chdir(path.resolve(currentWorkingDirectory, newDir));
-        currentWorkingDirectory = process.cwd();
-        event.reply('command-output', `当前目录: ${currentWorkingDirectory}`);
-      } catch (error) {
-        console.error(`改变目录错误: ${error}`);
-        event.reply('command-output', `错误: ${error.message}`);
-      }
-      return;
-    }
-  
-    // 执行普通命令
-    exec(command, { cwd: currentWorkingDirectory }, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`执行的错误: ${error}`);
-        event.reply('command-output', `错误: ${error.message}`);
-        return;
-      }
-      console.log(`stdout: ${stdout}`);
-      event.reply('command-output', stdout || stderr);
-    });
-  });
-
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
@@ -72,6 +38,35 @@ async function createWindow() {
     win.loadURL('app://./index.html')
   }
 }
+
+// 创建终端
+ipcMain.handle("terminal-create", (event) => {
+  let term = pty.spawn(shell, [], {
+      name: "xterm-color",
+      cwd: process.env.PWD,
+      env: process.env
+  });
+  const pid = term.pid;
+  const channels = ["terminal-incomingData-" + pid, "terminal-keystroke-" + pid, "terminal-resize-" + pid, "terminal-close-" + pid];
+  // 命令反馈
+  term.onData(function(data) {
+          win.webContents.send(channels[0], data);
+      })
+      // 命令输入
+  ipcMain.on(channels[1], (event, key) => {
+      term.write(key);
+  });
+  // 尺寸调整
+  ipcMain.on(channels[2], (event, cols, rows) => {
+      term.resize(cols, rows);
+  });
+  // 终端关闭
+  ipcMain.on(channels[3], (event) => {
+      term.kill();
+      ipcMain.removeAllListeners([channels[1], channels[2], channels[3]]);
+  });
+  return pid;
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {

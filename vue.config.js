@@ -6,7 +6,13 @@ module.exports = defineConfig({
     target: 'electron-renderer',
     externals: {
       'fs': 'require("fs")',
-      // 这里可以添加更多的 Node.js 模块
     }
-  }
+  },
+  productionSourceMap: true,
+	pluginOptions: {
+		electronBuilder: {
+			nodeIntegration: true,
+			externals:['node-pty']
+		}
+	}
 })
