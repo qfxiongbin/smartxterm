@@ -1,6 +1,11 @@
 <template>
   <div id="app">
-    <div ref="terminal" class="terminal" :id="'terminal'+ id"></div>
+    <div 
+    ref="terminal" 
+    class="terminal" 
+    :id="'terminal'+ id"
+    :style="{height: 'calc(100vh - 30px)'}"
+    ></div>
   </div>
 </template>
 
@@ -86,7 +91,6 @@ export default {
 <style>
 .terminal {
   width: 100%;
-  height: 100vh;
-  border: 1px solid #ccc;
+  height: 100%;
 }
 </style>
