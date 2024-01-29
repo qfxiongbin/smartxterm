@@ -22,11 +22,11 @@
       <v-toolbar flat>
         <v-toolbar-title>SSH链接</v-toolbar-title>
         <v-btn icon>
-          <v-icon @click="dialog = true">mdi-plus</v-icon>
+          <v-icon @click="showAddDialog">mdi-plus</v-icon>
         </v-btn>
       </v-toolbar>
       <v-list dense nav v-if="sshLinks.length">
-        <v-list-item v-for="(link,index) in sshLinks" :key="link.ip" @click="navigate(link)">
+        <v-list-item v-for="(link, index) in sshLinks" :key="link.ip" @click="navigate(link)">
           <v-row align="center">
             <v-col cols="6">
               <v-list-item-title>{{ link.ip }}</v-list-item-title>
@@ -54,18 +54,22 @@
     <v-dialog v-model="dialog" persistent max-width="600px">
       <v-card>
         <v-card-title>
-          <span class="headline">添加 SSH 链接</span>
+          <span class="headline">{{ addDialogText }}</span>
         </v-card-title>
         <v-card-text>
           <v-container>
-            <v-row>
-              <v-col cols="12">
-                <v-text-field v-model="newLink.ip" label="服务器 IP"></v-text-field>
-                <v-text-field v-model="newLink.port" label="端口"></v-text-field>
-                <v-text-field v-model="newLink.username" label="用户名"></v-text-field>
-                <v-text-field v-model="newLink.password" label="密码" type="password"></v-text-field>
-              </v-col>
-            </v-row>
+            <v-form ref="form" v-model="valid">
+              <v-row>
+                <v-col cols="12">
+                  <v-text-field v-model="newLink.ip" label="服务器 IP"
+                    :rules="[v => !!v || 'IP is required', v => /(\d{1,3}\.){3}\d{1,3}/.test(v) || 'IP is not valid']"></v-text-field>
+                  <v-text-field v-model="newLink.port" label="端口"
+                    :rules="[v => !!v || 'Port is required', v => (v > 0 && v <= 65535) || 'Port is not valid']"></v-text-field>
+                  <v-text-field v-model="newLink.username" label="用户名"></v-text-field>
+                  <v-text-field v-model="newLink.password" label="密码" type="password"></v-text-field>
+                </v-col>
+              </v-row>
+            </v-form>
           </v-container>
         </v-card-text>
         <v-card-actions>
@@ -101,9 +105,10 @@ export default {
   setup() {
     const store = useStore();
     const sshLinks = computed(() => store.getters.sshLinks);
-    const icons = ref(['mdi-home', 'mdi-account']);
-    const selectedIcon = ref(icons.value[0]);
     const confirmDialog = ref(false);
+    const addDialogText = ref('添加 SSH 链接');
+    const valid = ref(false);
+    let editIndex = null;
     let deleteIndex = null;
     const newLink = ref({
       ip: '',
@@ -112,15 +117,34 @@ export default {
       password: ''
     });
     const dialog = ref(false);
+
+    const showAddDialog = () => {
+      addDialogText.value = '添加 SSH 链接';
+      newLink.value = { ip: '', port: '', username: '', password: '' };
+      dialog.value = true;
+    };
+
     const addLink = () => {
+      if (!valid.value) {
+        return;
+      }
+      if (editIndex !== null) {
+        store.commit('editSSHLink', { index: editIndex, link: newLink.value });
+        editIndex = null;
+        newLink.value = { ip: '', port: '', username: '', password: '' };
+        dialog.value = false;
+        return;
+      }
       store.commit('addSSHLink', newLink.value);
       newLink.value = { ip: '', port: '', username: '', password: '' };
       dialog.value = false;
     };
 
     const editLink = (index) => {
-      // your code to edit link
-      console.log(index);
+      editIndex = index;
+      newLink.value = { ...sshLinks.value[index] };
+      addDialogText.value = '编辑 SSH 链接';
+      dialog.value = true;
     };
 
     const deleteLink = (index) => {
@@ -134,16 +158,17 @@ export default {
     };
 
     return {
-      icons,
-      selectedIcon,
+      valid,
       dialog,
       sshLinks,
       newLink,
+      confirmDialog,
+      addDialogText,
+      showAddDialog,
       addLink,
       editLink,
       deleteLink,
       confirmDelete,
-      confirmDialog
     };
   },
 };

@@ -11,6 +11,11 @@ export default createStore({
       localStorage.setItem('sshLinks', JSON.stringify(state.sshLinks));
     },
 
+    editSSHLink(state, { link, index }) {
+      state.sshLinks[index] = link;
+      localStorage.setItem('sshLinks', JSON.stringify(state.sshLinks));
+    },
+
     deleteLink(state, index) {
       state.sshLinks.splice(index, 1);
       localStorage.setItem('sshLinks', JSON.stringify(state.sshLinks));
