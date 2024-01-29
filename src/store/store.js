@@ -9,6 +9,11 @@ export default createStore({
     addSSHLink(state, link) {
       state.sshLinks.push(link);
       localStorage.setItem('sshLinks', JSON.stringify(state.sshLinks));
+    },
+
+    deleteLink(state, index) {
+      state.sshLinks.splice(index, 1);
+      localStorage.setItem('sshLinks', JSON.stringify(state.sshLinks));
     }
   },
   getters: {

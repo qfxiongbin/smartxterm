@@ -26,8 +26,18 @@
         </v-btn>
       </v-toolbar>
       <v-list dense nav v-if="sshLinks.length">
-        <v-list-item v-for="link in sshLinks" :key="link.title" @click="navigate(link)">
-          <v-list-item-title>{{ link.ip }}</v-list-item-title>
+        <v-list-item v-for="(link,index) in sshLinks" :key="link.ip" @click="navigate(link)">
+          <v-row align="center">
+            <v-col cols="6">
+              <v-list-item-title>{{ link.ip }}</v-list-item-title>
+            </v-col>
+            <v-col cols="2">
+              <img src="@/assets/edit.png" class="operator-icon" @click.stop="editLink(index)">
+            </v-col>
+            <v-col cols="2">
+              <img src="@/assets/delete.png" class="operator-icon" @click.stop="deleteLink(index)">
+            </v-col>
+          </v-row>
         </v-list-item>
       </v-list>
       <v-list dense nav v-else>
@@ -42,36 +52,46 @@
       <smart-terminal class="full-height-width"></smart-terminal>
     </div>
     <v-dialog v-model="dialog" persistent max-width="600px">
-    <v-card>
-      <v-card-title>
-        <span class="headline">添加 SSH 链接</span>
-      </v-card-title>
-      <v-card-text>
-        <v-container>
-          <v-row>
-            <v-col cols="12">
-              <v-text-field v-model="newLink.ip" label="服务器 IP"></v-text-field>
-              <v-text-field v-model="newLink.port" label="端口"></v-text-field>
-              <v-text-field v-model="newLink.username" label="用户名"></v-text-field>
-              <v-text-field v-model="newLink.password" label="密码" type="password"></v-text-field>
-            </v-col>
-          </v-row>
-        </v-container>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="blue darken-1" text @click="dialog = false">取消</v-btn>
-        <v-btn color="blue darken-1" text @click="addLink">保存</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      <v-card>
+        <v-card-title>
+          <span class="headline">添加 SSH 链接</span>
+        </v-card-title>
+        <v-card-text>
+          <v-container>
+            <v-row>
+              <v-col cols="12">
+                <v-text-field v-model="newLink.ip" label="服务器 IP"></v-text-field>
+                <v-text-field v-model="newLink.port" label="端口"></v-text-field>
+                <v-text-field v-model="newLink.username" label="用户名"></v-text-field>
+                <v-text-field v-model="newLink.password" label="密码" type="password"></v-text-field>
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="dialog = false">取消</v-btn>
+          <v-btn color="blue darken-1" text @click="addLink">保存</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="confirmDialog" persistent max-width="300px">
+      <v-card>
+        <v-card-title class="headline">确认删除</v-card-title>
+        <v-card-text>你确定要删除这个链接吗？</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="green darken-1" text @click="confirmDialog = false">取消</v-btn>
+          <v-btn color="red darken-1" text @click="confirmDelete">确认</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
 import SmartTerminal from './components/SmartTerminal.vue';
 
 export default {
@@ -80,10 +100,11 @@ export default {
   },
   setup() {
     const store = useStore();
-    const router = useRouter();
     const sshLinks = computed(() => store.getters.sshLinks);
     const icons = ref(['mdi-home', 'mdi-account']);
     const selectedIcon = ref(icons.value[0]);
+    const confirmDialog = ref(false);
+    let deleteIndex = null;
     const newLink = ref({
       ip: '',
       port: '',
@@ -97,18 +118,32 @@ export default {
       dialog.value = false;
     };
 
-    const navigate = (path) => {
-      router.push(path);
+    const editLink = (index) => {
+      // your code to edit link
+      console.log(index);
+    };
+
+    const deleteLink = (index) => {
+        deleteIndex = index;
+        confirmDialog.value = true;
+    };
+
+    const confirmDelete = () => {
+        store.commit('deleteLink', deleteIndex);
+        confirmDialog.value = false;
     };
 
     return {
       icons,
       selectedIcon,
-      navigate,
       dialog,
       sshLinks,
       newLink,
-      addLink
+      addLink,
+      editLink,
+      deleteLink,
+      confirmDelete,
+      confirmDialog
     };
   },
 };
@@ -124,8 +159,15 @@ export default {
   margin-top: 15px;
   width: 30px;
   height: 30px;
-
 }
+
+.operator-icon {
+  width: 20px;
+  height: 20px;
+  margin-top: 10px;
+  margin-left: 10px;
+}
+
 .container {
   display: flex;
   height: 100vh;
