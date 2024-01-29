@@ -28,7 +28,7 @@
       <v-list dense nav v-if="sshLinks.length">
         <v-list-item v-for="(link, index) in sshLinks" :key="link.ip" @click="navigate(link)">
           <v-row align="center">
-            <v-col cols="6">
+            <v-col cols="7">
               <v-list-item-title>{{ link.ip }}</v-list-item-title>
             </v-col>
             <v-col cols="2">
@@ -204,7 +204,7 @@ export default {
 }
 
 .sub-menu {
-  width: 200px; /* Adjust this value as needed */
+  width: 280px; /* Adjust this value as needed */
   /* ... other styles ... */
 }
 
