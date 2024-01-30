@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { Terminal } from 'xterm';
 import { ipcRenderer } from 'electron';
 import 'xterm/css/xterm.css';
@@ -22,6 +22,11 @@ export default {
     terminalId: {
       type: Number,
       required: true
+    },
+
+    link: {
+      type: Object,
+      required: false
     }
   },
   setup(props) {
@@ -39,7 +44,11 @@ export default {
         xterm.value.open(document.getElementById('smartterminal' + props.terminalId));
         channels.value = ["terminal-incomingData-" + pid, "terminal-keystroke-" + pid, "terminal-resize-" + pid, "terminal-close-" + pid];
         xterm.value.onData((data) => {
-          ipcRenderer.send(channels.value[1], data);
+          if (props.link) {
+            ipcRenderer.send('ssh-command', props.terminalId, data);
+          } else {
+            ipcRenderer.send(channels.value[1], data);
+          }
         })
         xterm.value.onResize((size) => {
           ipcRenderer.send(channels.value[2], size.cols, size.rows);
@@ -52,6 +61,10 @@ export default {
         }
         fitSize();
         xterm.value.focus();
+        if (props.link) {
+          const linkClone = JSON.parse(JSON.stringify(props.link));
+          ipcRenderer.send('new-ssh', props.terminalId,linkClone);
+        }
       })
     };
 
@@ -80,6 +93,18 @@ export default {
 
     onMounted(() => {
       initConnect();
+      ipcRenderer.on("ssh-data",(event, id, data) => {
+        if (id === props.terminalId) {
+          xterm.value.write(data);
+        }
+      });
+    });
+
+    watch(() => props.link, (link) => {
+      if (link) {
+        const linkClone = JSON.parse(JSON.stringify(link));
+        ipcRenderer.send('new-ssh', props.terminalId,linkClone);
+      }
     });
 
     return {

@@ -12,7 +12,7 @@ module.exports = defineConfig({
 	pluginOptions: {
 		electronBuilder: {
 			nodeIntegration: true,
-			externals:['node-pty']
+			externals:['node-pty','ssh2']
 		}
 	}
 })

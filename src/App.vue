@@ -26,7 +26,7 @@
         </v-btn>
       </v-toolbar>
       <v-list dense nav v-if="sshLinks.length">
-        <v-list-item v-for="(link, index) in sshLinks" :key="link.ip" @click="navigate(link)">
+        <v-list-item v-for="(link, index) in sshLinks" :key="link.ip" @click="doConnect(link)">
           <v-row align="center">
             <v-col cols="7">
               <v-list-item-title>{{ link.ip }}</v-list-item-title>
@@ -49,7 +49,7 @@
 
     <!-- Third column for main content -->
     <div class="main-content">
-      <smart-terminal class="full-height-width"></smart-terminal>
+      <smart-terminal class="full-height-width" v-if="showXterm" :link="currentLink" :terminalId="1"></smart-terminal>
     </div>
     <v-dialog v-model="dialog" persistent max-width="600px">
       <v-card>
@@ -105,6 +105,8 @@ export default {
   setup() {
     const store = useStore();
     const sshLinks = computed(() => store.getters.sshLinks);
+    const currentLink = ref(null);
+    const showXterm = ref(true);
     const confirmDialog = ref(false);
     const addDialogText = ref('添加 SSH 链接');
     const valid = ref(false);
@@ -153,15 +155,21 @@ export default {
     };
 
     const confirmDelete = () => {
-        store.commit('deleteLink', deleteIndex);
-        confirmDialog.value = false;
+        store.commit('deleteLink', deleteIndex);    
+    };
+
+    const doConnect = (link) => {
+        //给 showXterm 赋值 false 再赋值 true，是为了触发 SmartTerminal 组件的 setup 函数
+        currentLink.value = link;
     };
 
     return {
       valid,
       dialog,
+      showXterm,
       sshLinks,
       newLink,
+      currentLink,
       confirmDialog,
       addDialogText,
       showAddDialog,
@@ -169,6 +177,7 @@ export default {
       editLink,
       deleteLink,
       confirmDelete,
+      doConnect
     };
   },
 };

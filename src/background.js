@@ -8,6 +8,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 const os = require('os');
 const pty = require('node-pty');
 const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
+const { Client } = require('ssh2');
+const clients = {};
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
@@ -66,6 +68,48 @@ ipcMain.handle("terminal-create", (event) => {
       ipcMain.removeAllListeners([channels[1], channels[2], channels[3]]);
   });
   return pid;
+});
+
+ipcMain.on('new-ssh', (event, id, link) => {
+  const conn = new Client();
+  conn.on('ready', () => {
+    conn.shell((err, stream) => {
+      if (err) throw err;
+      clients[id] = stream;
+      event.reply('ssh-ready', id);
+      stream.on('data', (data) => {
+        console.log(data.toString());
+        event.reply('ssh-data', id, data.toString());
+      });
+    });
+  }).connect({
+    host: link.ip,
+    port: link.port,
+    username: link.username,
+    password: link.password
+  });
+});
+
+ipcMain.on('data', (event, id, data) => {
+  const stream = clients[id];
+  if (stream) {
+    stream.write(data);
+  }
+});
+
+ipcMain.on('end-ssh', (event, id) => {
+  const stream = clients[id];
+  if (stream) {
+    stream.end();
+    delete clients[id];
+  }
+});
+
+ipcMain.on('ssh-command', (event, id, command) => {
+  const stream = clients[id];
+  if (stream) {
+    stream.write(command);
+  }
 });
 
 // Quit when all windows are closed.
