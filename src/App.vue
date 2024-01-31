@@ -49,7 +49,12 @@
 
     <!-- Third column for main content -->
     <div class="main-content">
-      <smart-terminal class="full-height-width" v-if="showXterm" :link="currentLink" :terminalId="1"></smart-terminal>
+      <v-chip v-for="(terminal, index) in terminals" :key="terminal.id" @contextmenu.prevent="openContextMenu(index)"
+        label closable @click:close="closeTerminal(index)" @click="changeTerminal(index)" style="margin-left:5px">{{
+          terminal.link.ip }}</v-chip>
+      <smart-terminal class="full-height-width" v-if="terminals[activeTerminalIndex]"
+        :link="terminals[activeTerminalIndex].link" :terminalId="terminals[activeTerminalIndex].id">
+      </smart-terminal>
     </div>
     <v-dialog v-model="dialog" persistent max-width="600px">
       <v-card>
@@ -108,6 +113,17 @@ export default {
     const currentLink = ref(null);
     const showXterm = ref(true);
     const confirmDialog = ref(false);
+    const activeTerminalIndex = computed(() => store.state.activeTerminalIndex);
+    const terminals = computed(() => store.state.terminals);
+    const changeTerminal = (index) => {
+      store.commit('setActiveTerminalIndex', index);
+    };
+    const closeTerminal = (index) => {
+      store.commit('removeTerminal', index);
+      if (index === activeTerminalIndex.value) {
+        store.commit('setActiveTerminalIndex', null);
+      }
+    };
     const addDialogText = ref('添加 SSH 链接');
     const valid = ref(false);
     let editIndex = null;
@@ -161,6 +177,12 @@ export default {
     const doConnect = (link) => {
         //给 showXterm 赋值 false 再赋值 true，是为了触发 SmartTerminal 组件的 setup 函数
         currentLink.value = link;
+        // 需要创建新的 对象存进 terminals
+        let terminal = {
+          id: terminals.value.length,
+          link: link
+        };
+        store.commit('addTerminal', terminal);
     };
 
     return {
@@ -172,12 +194,16 @@ export default {
       currentLink,
       confirmDialog,
       addDialogText,
+      terminals,
+      activeTerminalIndex,
       showAddDialog,
       addLink,
       editLink,
       deleteLink,
       confirmDelete,
-      doConnect
+      doConnect,
+      changeTerminal,
+      closeTerminal
     };
   },
 };
@@ -229,7 +255,7 @@ export default {
 
 .full-height-width {
   position: absolute;
-  top: 0;
+  top: 5;
   right: 0;
   bottom: 0;
   left: 0;
