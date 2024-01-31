@@ -120,7 +120,12 @@ export default {
     };
     const closeTerminal = (index) => {
       store.commit('removeTerminal', index);
-      if (index === activeTerminalIndex.value) {
+      if (terminals.value.length) {
+        store.commit('setActiveTerminalIndex', terminals.value.length - 1);
+      }
+
+      console.log('activeTerminalIndex', activeTerminalIndex.value);
+      if (!terminals.value.length) {
         store.commit('setActiveTerminalIndex', null);
       }
     };
