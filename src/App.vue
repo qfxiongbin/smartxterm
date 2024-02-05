@@ -20,7 +20,7 @@
     <!-- Second column for sub-menu -->
     <div class="grey darken-1 border-right sub-menu">
       <v-toolbar flat>
-        <v-toolbar-title>SSH链接</v-toolbar-title>
+        <v-toolbar-title>SSH</v-toolbar-title>
         <v-btn icon>
           <v-icon @click="showAddDialog">mdi-plus</v-icon>
         </v-btn>
@@ -42,7 +42,7 @@
       </v-list>
       <v-list dense nav v-else>
         <v-list-item>
-          <p class="empty-txt">暂无链接</p>
+          <p class="empty-txt">暂无服务器信息</p>
         </v-list-item>
       </v-list>
     </div>
@@ -52,9 +52,12 @@
       <v-chip v-for="(terminal, index) in terminals" :key="terminal.id" @contextmenu.prevent="openContextMenu(index)"
         label closable @click:close="closeTerminal(index)" @click="changeTerminal(index)" style="margin-left:5px">{{
           terminal.link.ip }}</v-chip>
-      <smart-terminal class="full-height-width" v-if="terminals[activeTerminalIndex]"
-        :link="terminals[activeTerminalIndex].link" :terminalId="terminals[activeTerminalIndex].id">
-      </smart-terminal>
+      <keep-alive :include="includes">
+        <smart-terminal class="full-height-width" v-if="terminals[activeTerminalIndex]"
+          :link="terminals[activeTerminalIndex].link" :terminalId="terminals[activeTerminalIndex].id"
+          :key="terminals[activeTerminalIndex].id">
+        </smart-terminal>
+      </keep-alive>
     </div>
     <v-dialog v-model="dialog" persistent max-width="600px">
       <v-card>
@@ -102,6 +105,7 @@
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import SmartTerminal from './components/SmartTerminal.vue';
+import { v4 as uuidv4 } from 'uuid';
 
 export default {
   components: {
@@ -115,6 +119,7 @@ export default {
     const confirmDialog = ref(false);
     const activeTerminalIndex = computed(() => store.state.activeTerminalIndex);
     const terminals = computed(() => store.state.terminals);
+    const includes = ref([]);
     const changeTerminal = (index) => {
       store.commit('setActiveTerminalIndex', index);
     };
@@ -182,12 +187,14 @@ export default {
     const doConnect = (link) => {
         //给 showXterm 赋值 false 再赋值 true，是为了触发 SmartTerminal 组件的 setup 函数
         currentLink.value = link;
+        let uuid = uuidv4();
         // 需要创建新的 对象存进 terminals
         let terminal = {
-          id: terminals.value.length,
+          id: uuid,
           link: link
         };
         store.commit('addTerminal', terminal);
+        includes.value.push(uuid);
     };
 
     return {
@@ -201,6 +208,7 @@ export default {
       addDialogText,
       terminals,
       activeTerminalIndex,
+      includes,
       showAddDialog,
       addLink,
       editLink,
@@ -245,7 +253,11 @@ export default {
 
 .sub-menu {
   width: 280px; /* Adjust this value as needed */
+  border-right: 1px solid #bdbaba;
   /* ... other styles ... */
+}
+.borderd-right {
+  border-right: 1px solid #9b9898; /* Adjust as needed */
 }
 
 .main-content {

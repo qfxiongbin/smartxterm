@@ -17,7 +17,7 @@ import 'xterm/css/xterm.css';
 import { FitAddon } from 'xterm-addon-fit';
 
 export default {
-  
+  name: 'SmartTerminal',
   props: {
     terminalId: {
       type: Number,
